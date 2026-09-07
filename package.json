@@ -1,0 +1,35 @@
+{
+  "name": "maia-rag",
+  "version": "0.1.0",
+  "description": "Autonomous local-first RAG knowledge service for Maia Platform",
+  "type": "module",
+  "main": "src/server.js",
+  "bin": {"maia-rag": "src/cli/index.js"},
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "cli": "node src/cli/index.js",
+    "watch": "node src/watcher/index.js",
+    "doctor": "node src/cli/index.js doctor",
+    "test": "node --test"
+  },
+  "engines": {"node": ">=20"},
+  "dependencies": {
+    "@qdrant/js-client-rest": "^1.15.1",
+    "better-sqlite3": "^12.2.0",
+    "chokidar": "^4.0.3",
+    "commander": "^14.0.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "file-type": "^21.0.0",
+    "helmet": "^8.1.0",
+    "mammoth": "^1.10.0",
+    "mime-types": "^3.0.1",
+    "multer": "^2.0.2",
+    "pdf-parse": "^1.1.1",
+    "pino": "^9.9.4",
+    "pino-http": "^10.5.0",
+    "yaml": "^2.8.1",
+    "zod": "^4.1.5"
+  }
+}

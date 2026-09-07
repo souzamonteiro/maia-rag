@@ -1,0 +1,1 @@
+No license has been selected yet. Before publishing the repository, choose a license deliberately. Apache-2.0 is a reasonable default for infrastructure/software intended for broad reuse, but this is a project-owner decision.

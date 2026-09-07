@@ -1,0 +1,22 @@
+[Unit]
+Description=Maia RAG API and Web UI
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=maia
+Group=maia
+WorkingDirectory=/opt/maia-rag
+EnvironmentFile=-/etc/maia-rag.env
+ExecStart=/usr/bin/node /opt/maia-rag/src/server.js
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/maia-rag/data
+
+[Install]
+WantedBy=multi-user.target

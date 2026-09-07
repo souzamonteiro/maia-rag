@@ -1,0 +1,40 @@
+server:
+  host: 127.0.0.1
+  port: 4310
+
+storage:
+  dataDir: ./data
+  sqliteFile: metadata.sqlite
+  originalsDir: originals
+  inboxDir: inbox
+  processingDir: processing
+  processedDir: processed
+  failedDir: failed
+
+ollama:
+  baseUrl: http://127.0.0.1:11434
+  embeddingModel: qwen3-embedding:0.6b
+  classifierModel: qwen2.5:3b
+  chatModel: qwen2.5:7b
+
+qdrant:
+  url: http://127.0.0.1:6333
+  collection: maia_rag_chunks
+  vectorSize: 1024
+  distance: Cosine
+
+retrieval:
+  topK: 8
+  candidateK: 20
+  minScore: 0.25
+
+classification:
+  enabled: true
+  autoAssignCollections: true
+  collectionThreshold: 0.80
+  lowConfidenceThreshold: 0.60
+
+watcher:
+  enabled: true
+  recursive: true
+  settleMs: 1500
