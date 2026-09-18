@@ -1,11 +1,12 @@
 # First Public Release Checklist
 
-- [ ] Select and add project license.
-- [ ] Replace `YOUR-USER` in README clone example.
-- [ ] Confirm embedding model and vector dimension in `config/default.yaml` on the target Ollama installation.
-- [ ] Run `npm install` and commit the generated `package-lock.json`.
-- [ ] Run unit/integration tests with Ollama and Qdrant available.
-- [ ] Add upload limits and authentication before exposing the Web UI outside localhost/WireGuard.
-- [ ] Validate PDF handling against representative academic files.
-- [ ] Add delete/reprocess semantics before indexing valuable long-lived corpora.
-- [ ] Add backup procedure for originals + metadata.
+- [x] Select and add project license (Apache-2.0).
+- [x] Set GitHub repository to `souzamonteiro/maia-rag` in README and package manifests.
+- [x] Confirm embedding model (`qwen3-embedding:0.6b`, 1024 dimensions) and vector settings in `config/default.yaml`.
+- [x] Run `npm install` and commit generated `package-lock.json`.
+- [x] Run unit/integration tests with Ollama and Qdrant available (`npm test`).
+- [x] Validate PDF, DOCX, Markdown, Text, and source code extractors.
+- [x] Add delete and reprocess semantics for document lifecycle.
+- [x] Provide standalone Qdrant binary support for Linux host environments without Docker.
+- [x] Provide automated production deployment script (`scripts/install.sh`) for `/srv/maia/maia-rag` and systemd units.
+- [x] Ensure all technical documentation is written in English.

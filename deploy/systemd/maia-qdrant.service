@@ -1,16 +1,17 @@
 [Unit]
-Description=Maia RAG API and Web UI
-After=network-online.target maia-qdrant.service ollama.service
+Description=Maia RAG Qdrant Vector Database
+After=network-online.target
 Wants=network-online.target
-Requires=maia-qdrant.service
 
 [Service]
 Type=simple
 User=maia
 Group=maia
 WorkingDirectory=/srv/maia/maia-rag
-EnvironmentFile=-/srv/maia/maia-rag/.env
-ExecStart=/usr/bin/node src/server.js
+Environment=QDRANT__STORAGE__STORAGE_PATH=/srv/maia/maia-rag/data/qdrant
+Environment=QDRANT__SERVICE__HOST=127.0.0.1
+Environment=QDRANT__SERVICE__HTTP_PORT=6333
+ExecStart=/srv/maia/maia-rag/bin/qdrant
 Restart=on-failure
 RestartSec=3
 TimeoutStopSec=30
@@ -23,3 +24,4 @@ ReadWritePaths=/srv/maia/maia-rag/data
 
 [Install]
 WantedBy=multi-user.target
+

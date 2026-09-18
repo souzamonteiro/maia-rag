@@ -15,7 +15,8 @@ ollama:
   baseUrl: http://127.0.0.1:11434
   embeddingModel: qwen3-embedding:0.6b
   classifierModel: qwen2.5:3b
-  chatModel: qwen2.5:7b
+  chatModel: qwen2.5:3b
+  batchSize: 16
 
 qdrant:
   url: http://127.0.0.1:6333

@@ -1,6 +1,16 @@
 import fs from 'node:fs/promises';
-import pdf from 'pdf-parse';
+import pdfModule from 'pdf-parse';
+
+const pdf = typeof pdfModule === 'function' ? pdfModule : (pdfModule.default || pdfModule);
+
 export async function extractPdf(filePath) {
-  const data = await pdf(await fs.readFile(filePath));
-  return { text: data.text || '', metadata: { pages: data.numpages, info: data.info || {} } };
+  const buf = await fs.readFile(filePath);
+  const data = await pdf(buf);
+  return {
+    text: data.text || '',
+    metadata: {
+      pages: data.numpages || 1,
+      info: data.info || {}
+    }
+  };
 }

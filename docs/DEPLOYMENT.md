@@ -1,90 +1,134 @@
 # Deployment Guide
 
-## Development workstation
+This guide covers deployment of **Maia RAG** for local development and for production on Maia Edge / Linux host environments.
 
-Components:
+---
 
-- Node.js service on `127.0.0.1:4310`
-- Ollama on `127.0.0.1:11434`
-- Qdrant on `127.0.0.1:6333`
-- SQLite and originals under `./data`
+## 1. Development Workstation
 
+### Prerequisites
+- Node.js 20+
+- Ollama running locally on `http://127.0.0.1:11434`
+- Either Docker (for Qdrant container) or the standalone Qdrant binary
+
+### Setup & Run
 ```bash
+git clone https://github.com/souzamonteiro/maia-rag.git
+cd maia-rag
 cp .env.example .env
-npm install
-docker compose up -d
-ollama pull qwen3-embedding:0.6b
-ollama pull qwen2.5:3b
+
+# Bootstrap dependencies, Qdrant, and Ollama models
+./scripts/bootstrap.sh
+
+# Start services (starts Qdrant in background if not already running)
+npm run start:services
+
+# Start Maia RAG server
 npm start
 ```
 
-In another terminal:
+Open `http://127.0.0.1:4310` to view the Web UI dashboard.
 
+To run the background inbox watcher in development:
 ```bash
 npm run watch
 ```
 
-## Maia Edge / production node
+---
 
-Recommended filesystem:
+## 2. Production Deployment (`/srv/maia/maia-rag`)
 
+In the Maia Platform architecture, system services are hosted in `/srv/maia/[PROJECT]` and managed by systemd under the `maia` system user.
+
+### Automated Installation
+Run the installer as root:
+
+```bash
+cd /home/roberto/projects/maia-rag
+sudo ./scripts/install.sh
+```
+
+### What `scripts/install.sh` Does:
+1. Installs build and runtime tools (`rsync`, `curl`, `build-essential`, `python3`).
+2. Ensures the dedicated `maia` system user and group exist.
+3. Provisions `/srv/maia/maia-rag` with strict permissions (`0750`, owned by `root:maia`).
+4. Creates data directories `/srv/maia/maia-rag/data/{inbox,processing,processed,failed,originals,qdrant}` owned by `maia:maia`.
+5. Syncs project codebase excluding development files (`.git`, `node_modules`, `test`).
+6. Installs the standalone Qdrant vector database binary in `/srv/maia/maia-rag/bin/qdrant`.
+7. Installs production Node.js dependencies (`npm install --omit=dev`) and builds native `better-sqlite3`.
+8. Generates `/srv/maia/maia-rag/.env` with production paths.
+9. Pulls required models (`qwen3-embedding:0.6b` and `qwen2.5:3b`) in Ollama.
+10. Installs, enables, and starts three systemd services:
+    - `maia-qdrant.service`
+    - `maia-rag.service`
+    - `maia-rag-watcher.service`
+
+### Production Directory Layout
 ```text
-/opt/maia-rag/                 application checkout
-/srv/maia/rag/                 persistent data (alternative to /opt data)
-/etc/maia-rag.env              environment overrides
+/srv/maia/maia-rag/
+├── .env                  # Environment configuration
+├── bin/
+│   └── qdrant            # Standalone Qdrant binary
+├── config/
+│   └── default.yaml      # Service configuration
+├── data/
+│   ├── inbox/            # Watched ingestion inbox
+│   ├── originals/        # Immutable original document copies
+│   ├── processing/       # Temporary ingestion working directory
+│   ├── processed/        # Ingestion archive
+│   ├── failed/           # Ingestion error quarantine & sidecar JSONs
+│   ├── qdrant/           # Vector index storage
+│   └── metadata.sqlite   # SQLite operational metadata database
+├── src/                  # Application source code
+└── deploy/systemd/       # Systemd unit files
 ```
 
-Recommended network policy:
+---
 
-- Maia RAG API should bind to loopback or the WireGuard interface, not the public Internet.
-- Qdrant should bind to loopback/private network only.
-- Ollama should remain private.
-- Nginx on Maia Edge may expose only the Web/API routes required by authenticated clients.
+## 3. Systemd Services Management
 
-Example environment file:
-
+Check service status:
 ```bash
-MAIA_RAG_HOST=127.0.0.1
-MAIA_RAG_PORT=4310
-MAIA_RAG_DATA_DIR=/srv/maia/rag
-OLLAMA_BASE_URL=http://127.0.0.1:11434
-QDRANT_URL=http://127.0.0.1:6333
+sudo systemctl status maia-qdrant.service maia-rag.service maia-rag-watcher.service
 ```
 
-### systemd
-
-Copy the units from `systemd/`, adapt user/path, then:
-
+Restart services:
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable --now maia-rag.service
-sudo systemctl enable --now maia-rag-watcher.service
+sudo systemctl restart maia-rag
 ```
 
-### Reverse proxy concept
+Tail live logs:
+```bash
+sudo journalctl -u maia-rag -f
+sudo journalctl -u maia-rag-watcher -f
+sudo journalctl -u maia-qdrant -f
+```
+
+---
+
+## 4. Reverse Proxy Integration (Nginx)
+
+When exposing Maia RAG to trusted internal clients (e.g., via WireGuard `wg0`), proxy requests through Nginx:
 
 ```nginx
 location /rag/ {
     proxy_pass http://127.0.0.1:4310/;
     proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    client_max_body_size 200m;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    client_max_body_size 100m;
 }
 ```
 
-Add authentication before exposing ingestion or administration routes.
+---
 
-## Capacity planning
+## 5. Backup & Recovery
 
-The dominant storage cost is original files plus vectors. Actual vector storage depends on vector dimension, precision, replicas and payload. Track corpus growth rather than hard-coding assumptions. Web UI should eventually expose original bytes, chunk count, vector count and estimated index size.
+To create a complete backup of the Maia RAG state, archive together:
+1. SQLite metadata: `/srv/maia/maia-rag/data/metadata.sqlite`
+2. Originals store: `/srv/maia/maia-rag/data/originals/`
+3. Qdrant vector storage: `/srv/maia/maia-rag/data/qdrant/`
+4. Configuration: `/srv/maia/maia-rag/.env` and `config/default.yaml`
 
-## Backup
-
-Back up together:
-
-1. Original file store.
-2. SQLite/PostgreSQL metadata.
-3. Configuration and classification/index version metadata.
-
-Qdrant may be backed up using its snapshot facilities, but the vector index should also be reproducible from originals + metadata + processing versions.
+Even if Qdrant vector data is lost, the entire vector database can be reconstructed deterministically by running reprocess on all documents from the original files and SQLite records.

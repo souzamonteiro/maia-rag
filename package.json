@@ -2,18 +2,27 @@
   "name": "maia-rag",
   "version": "0.1.0",
   "description": "Autonomous local-first RAG knowledge service for Maia Platform",
+  "license": "Apache-2.0",
+  "author": "The MaiaScript Team (https://www.maiascript.com)",
   "type": "module",
   "main": "src/server.js",
-  "bin": {"maia-rag": "src/cli/index.js"},
+  "bin": {
+    "maia-rag": "src/cli/index.js"
+  },
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "cli": "node src/cli/index.js",
     "watch": "node src/watcher/index.js",
     "doctor": "node src/cli/index.js doctor",
+    "qdrant:start": "mkdir -p ./data/qdrant && QDRANT__STORAGE__STORAGE_PATH=./data/qdrant QDRANT__SERVICE__HOST=127.0.0.1 QDRANT__SERVICE__HTTP_PORT=6333 ./bin/qdrant",
+    "start:services": "bash ./scripts/start-services.sh",
+    "install:system": "sudo bash scripts/install.sh",
     "test": "node --test"
   },
-  "engines": {"node": ">=20"},
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "@qdrant/js-client-rest": "^1.15.1",
     "better-sqlite3": "^12.2.0",
@@ -31,5 +40,8 @@
     "pino-http": "^10.5.0",
     "yaml": "^2.8.1",
     "zod": "^4.1.5"
+  },
+  "allowScripts": {
+    "better-sqlite3@12.11.1": true
   }
 }

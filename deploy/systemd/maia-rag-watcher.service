@@ -23,3 +23,4 @@ ReadWritePaths=/srv/maia/maia-rag/data
 
 [Install]
 WantedBy=multi-user.target
+

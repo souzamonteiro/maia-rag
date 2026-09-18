@@ -1,7 +1,222 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Maia RAG</title><link rel="stylesheet" href="/style.css"></head><body>
-<header><div><strong>Maia RAG</strong><span>Knowledge Service</span></div></header>
-<main><section class="hero"><p class="eyebrow">LOCAL-FIRST KNOWLEDGE</p><h1>Drop knowledge in. Maia RAG takes it from there.</h1><p>Upload documents, inspect automatic classification, monitor ingestion health and query the indexed corpus.</p></section>
-<section class="grid stats" id="stats"></section>
-<section class="panel"><h2>Ingest</h2><div id="drop" class="drop">Drop PDF, DOCX, Markdown, text or source files here<br><input id="file" type="file"></div><pre id="result"></pre></section>
-<section class="panel"><h2>Documents</h2><table><thead><tr><th>File</th><th>Status</th><th>Chunks</th><th>AI classification</th></tr></thead><tbody id="docs"></tbody></table></section>
-</main><script src="/app.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Maia RAG — Knowledge Service</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="brand">
+        <div class="logo">M</div>
+        <div>
+          <strong>Maia RAG</strong>
+          <span class="subtitle">Autonomous Knowledge Service</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <div id="service-status" class="status-pill status-loading">Checking system...</div>
+      </div>
+    </div>
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="tab-query">🔍 Query (RAG)</button>
+      <button class="tab-btn" data-tab="tab-ingest">📥 Ingest</button>
+      <button class="tab-btn" data-tab="tab-documents">📄 Documents</button>
+      <button class="tab-btn" data-tab="tab-collections">📚 Collections</button>
+      <button class="tab-btn" data-tab="tab-health">📊 Health & Stats</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- STATS SUMMARY BAR -->
+    <section class="grid stats-bar" id="stats-summary"></section>
+
+    <!-- TAB 1: QUERY (RAG) -->
+    <section id="tab-query" class="tab-content active">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Ask Knowledge Base</h2>
+          <span class="hint">Semantic retrieval with local LLM synthesis and verified citations</span>
+        </div>
+        <form id="query-form" class="query-box">
+          <textarea id="query-input" rows="3" placeholder="Ask anything about your ingested documents..." required></textarea>
+          <div class="query-options">
+            <div class="option-group">
+              <label for="query-collection">Collection:</label>
+              <select id="query-collection">
+                <option value="">All Collections</option>
+              </select>
+            </div>
+            <div class="option-group">
+              <label for="query-topk">Top-K:</label>
+              <input type="number" id="query-topk" value="6" min="1" max="20">
+            </div>
+            <div class="option-group">
+              <label for="query-mode">Mode:</label>
+              <select id="query-mode">
+                <option value="rag">RAG (Answer + Sources)</option>
+                <option value="search">Search Only (Raw Chunks)</option>
+              </select>
+            </div>
+            <button type="submit" id="btn-submit-query" class="btn btn-primary">Ask Maia RAG</button>
+          </div>
+        </form>
+
+        <div id="query-loading" class="loading-spinner hidden">
+          <div class="spinner"></div>
+          <span>Retrieving relevant chunks and generating response with Ollama...</span>
+        </div>
+
+        <div id="query-result" class="hidden">
+          <div class="answer-card">
+            <h3>Answer</h3>
+            <div id="answer-text" class="prose"></div>
+          </div>
+          <div class="sources-card">
+            <h3>Sources Cited (<span id="sources-count">0</span>)</h3>
+            <div id="sources-list" class="sources-grid"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: INGEST -->
+    <section id="tab-ingest" class="tab-content">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Ingest Documents</h2>
+          <span class="hint">Upload PDF, DOCX, Markdown, Text or Source Code for autonomous indexing</span>
+        </div>
+        <div class="ingest-controls">
+          <div class="form-row">
+            <label for="ingest-collection">Assign to Collection (optional):</label>
+            <select id="ingest-collection">
+              <option value="">(Auto-assign based on AI classification)</option>
+            </select>
+          </div>
+          <div class="form-row checkbox-row">
+            <label>
+              <input type="checkbox" id="ingest-ai-classify" checked>
+              Enable AI metadata classification and tagging
+            </label>
+          </div>
+        </div>
+
+        <div id="drop-zone" class="drop-zone">
+          <div class="drop-icon">📂</div>
+          <p><strong>Drag and drop files here</strong></p>
+          <p class="drop-hint">or click to browse from your computer (PDF, DOCX, MD, TXT, Code)</p>
+          <input type="file" id="file-input" multiple>
+        </div>
+
+        <div id="upload-status" class="upload-status hidden"></div>
+        <div id="upload-results" class="upload-results hidden">
+          <h3>Ingestion Log</h3>
+          <div id="upload-log"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: DOCUMENTS -->
+    <section id="tab-documents" class="tab-content">
+      <div class="panel">
+        <div class="panel-header-actions">
+          <div>
+            <h2>Indexed Documents</h2>
+            <span class="hint">Inspect, download, reprocess or remove indexed corpus files</span>
+          </div>
+          <div class="filter-actions">
+            <input type="text" id="docs-search" placeholder="Filter by filename or tags...">
+            <select id="docs-status-filter">
+              <option value="">All Statuses</option>
+              <option value="ready">Ready</option>
+              <option value="processing">Processing</option>
+              <option value="failed">Failed</option>
+            </select>
+            <button id="docs-refresh" class="btn btn-secondary">Refresh</button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Filename</th>
+                <th>Status</th>
+                <th>Chunks</th>
+                <th>Size</th>
+                <th>Type / Domains</th>
+                <th>Indexed Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="docs-tbody">
+              <tr><td colspan="7" class="text-center">Loading documents...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: COLLECTIONS -->
+    <section id="tab-collections" class="tab-content">
+      <div class="panel">
+        <div class="panel-header-actions">
+          <div>
+            <h2>Knowledge Collections</h2>
+            <span class="hint">Organize documents into thematic knowledge collections</span>
+          </div>
+        </div>
+
+        <div class="collections-manager">
+          <form id="create-collection-form" class="inline-form">
+            <input type="text" id="new-coll-name" placeholder="Collection name (e.g., 'maiascript-core')" required>
+            <input type="text" id="new-coll-desc" placeholder="Description (optional)">
+            <button type="submit" class="btn btn-primary">Create Collection</button>
+          </form>
+
+          <div id="collections-list" class="collections-grid">
+            <p class="text-center">Loading collections...</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: HEALTH & STATS -->
+    <section id="tab-health" class="tab-content">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Operational Health & Signals</h2>
+          <span class="hint">Component diagnostics, vector store status, and error logs</span>
+        </div>
+
+        <div class="health-grid" id="health-components"></div>
+
+        <div class="health-details">
+          <h3>Recent Processing Errors</h3>
+          <div id="recent-errors-container">
+            <p class="text-muted">No recent processing errors recorded.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL: DOCUMENT DETAILS & CHUNKS -->
+  <div id="doc-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-title">Document Details</h3>
+        <button id="modal-close" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body">
+        Loading...
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

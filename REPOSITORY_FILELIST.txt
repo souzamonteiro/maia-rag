@@ -4,10 +4,13 @@
 ./.github/workflows/ci.yml
 ./.gitignore
 ./CONTRIBUTING.md
-./LICENSE_NOT_SELECTED.txt
+./LICENSE
 ./README.md
 ./REPOSITORY_FILELIST.txt
 ./config/default.yaml
+./deploy/systemd/maia-qdrant.service
+./deploy/systemd/maia-rag-watcher.service
+./deploy/systemd/maia-rag.service
 ./docker-compose.yml
 ./docs/API.md
 ./docs/ARCHITECTURE.md
@@ -24,6 +27,9 @@
 ./examples/upload.sh
 ./package.json
 ./scripts/bootstrap.sh
+./scripts/install.sh
+./scripts/start-services.sh
+./scripts/uninstall.sh
 ./src/api/routes.js
 ./src/cli/index.js
 ./src/config/index.js
@@ -35,6 +41,7 @@
 ./src/ingestion/classifiers/aiClassifier.js
 ./src/ingestion/extractors/docxExtractor.js
 ./src/ingestion/extractors/index.js
+./src/ingestion/extractors/markdownExtractor.js
 ./src/ingestion/extractors/pdfExtractor.js
 ./src/ingestion/extractors/textExtractor.js
 ./src/ingestion/pipeline.js
@@ -48,6 +55,11 @@
 ./src/web/public/app.js
 ./src/web/public/index.html
 ./src/web/public/style.css
+./systemd/maia-qdrant.service
 ./systemd/maia-rag-watcher.service
 ./systemd/maia-rag.service
+./test/api.test.js
 ./test/chunker.test.js
+./test/extractors.test.js
+./test/rag.test.js
+./test/sqlite.test.js

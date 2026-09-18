@@ -1,8 +1,8 @@
 [Unit]
-Description=Maia RAG Inbox Watcher
-After=network-online.target maia-rag.service
+Description=Maia RAG API and Web UI
+After=network-online.target maia-qdrant.service ollama.service
 Wants=network-online.target
-Requires=maia-rag.service
+Requires=maia-qdrant.service
 
 [Service]
 Type=simple
@@ -10,10 +10,10 @@ User=maia
 Group=maia
 WorkingDirectory=/srv/maia/maia-rag
 EnvironmentFile=-/srv/maia/maia-rag/.env
-ExecStart=/usr/bin/node src/watcher/index.js
+ExecStart=/usr/bin/node src/server.js
 Restart=on-failure
-RestartSec=5
-TimeoutStopSec=20
+RestartSec=3
+TimeoutStopSec=30
 
 NoNewPrivileges=true
 PrivateTmp=true
@@ -23,3 +23,4 @@ ReadWritePaths=/srv/maia/maia-rag/data
 
 [Install]
 WantedBy=multi-user.target
+
