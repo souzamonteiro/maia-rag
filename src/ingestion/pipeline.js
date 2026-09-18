@@ -73,7 +73,7 @@ export async function ingestFile(filePath, options = {}) {
 
   try {
     // 1. Extraction
-    const extracted = await extractDocument(filePath);
+    const extracted = await extractDocument(filePath, filename);
     updateJob({ id: jobId, stage: 'classifying', progress: 0.3, updatedAt: now() });
 
     // 2. Non-blocking AI Classification (ADR-005)

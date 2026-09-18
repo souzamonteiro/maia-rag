@@ -62,3 +62,16 @@ test('extractDocument routes by extension correctly', async () => {
   await fs.rm(tmpDir, { recursive: true, force: true });
 });
 
+
+test('extensionless uploads use the original filename to select the extractor', async (t) => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'rag-upload-'));
+  t.after(() => fs.rm(dir, { recursive: true, force: true }));
+  const uploaded = path.join(dir, 'random-upload-id');
+  await fs.writeFile(uploaded, '# Maia Chat\n\nProject documentation.');
+  const result = await extractDocument(uploaded, 'README.MD');
+  assert.equal(result.metadata.format, 'markdown');
+  assert.equal(result.metadata.title, 'Maia Chat');
+  assert.match(result.text, /Project documentation/);
+  await assert.rejects(extractDocument(uploaded, 'README.exe'), /Unsupported file type: .exe/);
+  await assert.rejects(extractDocument(uploaded), /no extension/);
+});

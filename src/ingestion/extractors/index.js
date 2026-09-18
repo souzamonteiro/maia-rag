@@ -13,8 +13,10 @@ const textExt = new Set([
   '.json', '.yaml', '.yml', '.xml', '.sql', '.maia', '.ebnf'
 ]);
 
-export async function extractDocument(filePath) {
-  const ext = path.extname(filePath).toLowerCase();
+// Multipart uploads have extensionless temporary paths; use the original name
+// only to select the extractor, and always read from the actual stored path.
+export async function extractDocument(filePath, originalName = filePath) {
+  const ext = path.extname(originalName).toLowerCase();
   if (ext === '.pdf') return extractPdf(filePath);
   if (ext === '.docx') return extractDocx(filePath);
   if (markdownExt.has(ext)) return extractMarkdown(filePath);

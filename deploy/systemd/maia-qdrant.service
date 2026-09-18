@@ -7,7 +7,7 @@ Wants=network-online.target
 Type=simple
 User=maia
 Group=maia
-WorkingDirectory=/srv/maia/maia-rag
+WorkingDirectory=/srv/maia/maia-rag/data
 Environment=QDRANT__STORAGE__STORAGE_PATH=/srv/maia/maia-rag/data/qdrant
 Environment=QDRANT__SERVICE__HOST=127.0.0.1
 Environment=QDRANT__SERVICE__HTTP_PORT=6333
