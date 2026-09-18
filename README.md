@@ -162,3 +162,21 @@ npm test
 ## License
 
 This project is licensed under the [Apache License 2.0](LICENSE).
+
+## Gradual dataset and book imports
+
+A sequential HTTP importer supports local PDF/Markdown/text files, direct
+file URLs and inline articles in JSONL manifests. It persists a separate queue,
+resumes interrupted work and disables per-document AI classification. Start with
+`npm run import -- enqueue docs/examples/import.jsonl --dry-run`.
+See [docs/IMPORTER.md](docs/IMPORTER.md) for batching, provenance, retry behavior
+and limitations. Dataset-specific Hugging Face adapters are not included yet.
+
+## Remote curator access
+
+For `rag.maiaplatform.org`, Nginx templates provide HTTPS and individual Basic
+Auth credentials at the Maia Edge VPS, with a WireGuard-only proxy to the local
+RAG service. See [docs/REMOTE-ACCESS.md](docs/REMOTE-ACCESS.md) for rendering,
+certificate bootstrap, user management and verification. All authenticated
+curators have full administrative access. No application authentication is
+enabled automatically by installing Maia RAG.

@@ -18,7 +18,8 @@
     "qdrant:start": "mkdir -p ./data/qdrant && QDRANT__STORAGE__STORAGE_PATH=./data/qdrant QDRANT__SERVICE__HOST=127.0.0.1 QDRANT__SERVICE__HTTP_PORT=6333 ./bin/qdrant",
     "start:services": "bash ./scripts/start-services.sh",
     "install:system": "sudo bash scripts/install.sh",
-    "test": "node --test"
+    "test": "node --test",
+    "import": "node src/importer/index.js"
   },
   "engines": {
     "node": ">=20"
