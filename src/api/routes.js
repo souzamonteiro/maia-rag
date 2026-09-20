@@ -1,7 +1,6 @@
 import express from 'express';
-import multer from 'multer';
+import { createDocumentUpload, originalUploadName } from './uploads.js';
 import path from 'node:path';
-import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { config, resolveData } from '../config/index.js';
@@ -24,12 +23,7 @@ import { isHealthy as isOllamaHealthy, listModels } from '../services/ollamaClie
 import { getCollectionStats, getChunksByDocumentId } from '../services/qdrantStore.js';
 import { logger } from '../core/logger.js';
 
-const uploadDir = resolveData(config.storage.inboxDir);
-fs.mkdirSync(uploadDir, { recursive: true });
-const upload = multer({
-  dest: uploadDir,
-  limits: { fileSize: 104857600 } // 100MB
-});
+const upload = createDocumentUpload(resolveData(), resolveData(config.storage.inboxDir));
 
 export const router = express.Router();
 
@@ -84,8 +78,12 @@ router.get('/models', async (req, res) => {
 // Documents
 // ----------------------------------------------------
 router.get('/documents', (req, res) => {
-  const limit = Math.min(Number(req.query.limit) || 100, 500);
-  const offset = Number(req.query.offset) || 0;
+  const requestedLimit = Number(req.query.limit ?? 100);
+  const offset = Number(req.query.offset ?? 0);
+  if (!Number.isSafeInteger(requestedLimit) || requestedLimit < 1 || !Number.isSafeInteger(offset) || offset < 0) {
+    return res.status(400).json({ error: 'limit must be a positive integer and offset a non-negative integer' });
+  }
+  const limit = Math.min(requestedLimit, 500);
   const status = req.query.status ? String(req.query.status) : undefined;
   const collectionId = req.query.collectionId ? String(req.query.collectionId) : undefined;
   const search = req.query.search ? String(req.query.search) : undefined;
@@ -116,7 +114,7 @@ router.post('/documents', upload.single('file'), async (req, res, next) => {
   }
 
   const filePath = req.file.path;
-  const originalName = req.file.originalname;
+  const originalName = originalUploadName(req.file.originalname);
   const collectionId = req.body.collectionId;
   const aiClassification = req.body.aiClassification !== 'false';
 

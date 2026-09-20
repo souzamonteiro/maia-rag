@@ -128,7 +128,7 @@ export function listDocuments({ limit = 100, offset = 0, status, collectionId, s
     sql += ` WHERE ${whereClauses.join(' AND ')} `;
   }
 
-  sql += ` ORDER BY d.created_at DESC LIMIT ? OFFSET ?`;
+  sql += ` ORDER BY d.created_at DESC, d.id DESC LIMIT ? OFFSET ?`;
   params.push(limit, offset);
 
   const rows = db.prepare(sql).all(...params);

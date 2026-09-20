@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Maia RAG — Knowledge Service</title>
   <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/vendor/highlight.js/styles/github-dark.min.css">
 </head>
 <body>
   <header>
@@ -128,13 +129,15 @@
             <span class="hint">Inspect, download, reprocess or remove indexed corpus files</span>
           </div>
           <div class="filter-actions">
-            <input type="text" id="docs-search" placeholder="Filter by filename or tags...">
-            <select id="docs-status-filter">
+            <input type="text" id="docs-search" aria-label="Search documents" placeholder="Filter by filename or tags...">
+            <select id="docs-status-filter" aria-label="Filter by status">
               <option value="">All Statuses</option>
               <option value="ready">Ready</option>
               <option value="processing">Processing</option>
               <option value="failed">Failed</option>
             </select>
+            <select id="docs-collection-filter" aria-label="Filter by collection"><option value="">All Collections</option></select>
+            <select id="docs-page-size" aria-label="Documents per page"><option value="25">25 per page</option><option value="50">50 per page</option></select>
             <button id="docs-refresh" class="btn btn-secondary">Refresh</button>
           </div>
         </div>
@@ -157,6 +160,11 @@
             </tbody>
           </table>
         </div>
+        <nav class="documents-pagination" aria-label="Document pages">
+          <span id="docs-page-info" role="status" aria-live="polite"></span>
+          <button id="docs-prev" class="btn btn-secondary" type="button" disabled>Previous</button>
+          <button id="docs-next" class="btn btn-secondary" type="button" disabled>Next</button>
+        </nav>
       </div>
     </section>
 
@@ -217,6 +225,13 @@
     </div>
   </div>
 
-  <script src="/app.js"></script>
+  <script type="importmap">
+    {"imports": {
+      "marked": "/vendor/marked/marked.esm.js",
+      "dompurify": "/vendor/dompurify/purify.es.mjs",
+      "highlight.js": "/vendor/highlight.js/es/highlight.min.js"
+    }}
+  </script>
+  <script type="module" src="/app.js"></script>
 </body>
 </html>

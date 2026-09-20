@@ -21,6 +21,9 @@ app.use(pinoHttp({ logger }));
 app.use('/api', router);
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+app.use('/vendor/marked', express.static(path.join(here, '../node_modules/marked/lib')));
+app.use('/vendor/dompurify', express.static(path.join(here, '../node_modules/dompurify/dist')));
+app.use('/vendor/highlight.js', express.static(path.join(here, '../node_modules/@highlightjs/cdn-assets')));
 app.use(express.static(path.join(here, 'web/public')));
 
 app.use((err, req, res, next) => {

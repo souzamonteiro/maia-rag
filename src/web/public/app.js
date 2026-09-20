@@ -1,3 +1,5 @@
+import { renderMarkdown } from './markdown.js';
+
 // Maia RAG Web Dashboard Client
 
 // ----------------------------------------------------
@@ -110,7 +112,7 @@ queryForm.addEventListener('submit', async (e) => {
       answerText.textContent = `Search found ${data.count} matching knowledge chunks.`;
       renderSources(data.results || []);
     } else {
-      answerText.textContent = data.answer || 'No answer generated.';
+      answerText.innerHTML = renderMarkdown(data.answer || 'No answer generated.');
       renderSources(data.sources || []);
     }
   } catch (err) {
@@ -215,21 +217,71 @@ const docsSearch = document.getElementById('docs-search');
 const docsStatusFilter = document.getElementById('docs-status-filter');
 const docsRefresh = document.getElementById('docs-refresh');
 
-docsSearch.addEventListener('input', debounce(() => loadDocuments(), 300));
-docsStatusFilter.addEventListener('change', () => loadDocuments());
+const docsCollectionFilter = document.getElementById('docs-collection-filter');
+const docsPageSize = document.getElementById('docs-page-size');
+const docsPrev = document.getElementById('docs-prev');
+const docsNext = document.getElementById('docs-next');
+const docsPageInfo = document.getElementById('docs-page-info');
+let docsOffset = 0;
+let docsController;
+let docsRequest = 0;
+
+function invalidateDocuments() {
+  docsRequest++;
+  docsController?.abort();
+  docsPrev.disabled = docsNext.disabled = true;
+  docsTbody.setAttribute('aria-busy', 'true');
+  docsTbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Loading documents...</td></tr>';
+  docsPageInfo.textContent = 'Loading...';
+}
+const searchDocuments = debounce(() => loadDocuments(), 300);
+docsSearch.addEventListener('input', () => {
+  docsOffset = 0;
+  invalidateDocuments();
+  searchDocuments();
+});
+for (const control of [docsStatusFilter, docsCollectionFilter, docsPageSize]) {
+  control.addEventListener('change', () => { docsOffset = 0; loadDocuments(); });
+}
 docsRefresh.addEventListener('click', () => loadDocuments());
+docsPrev.addEventListener('click', () => {
+  docsOffset = Math.max(0, docsOffset - Number(docsPageSize.value));
+  loadDocuments();
+});
+docsNext.addEventListener('click', () => {
+  docsOffset += Number(docsPageSize.value);
+  loadDocuments();
+});
 
 async function loadDocuments() {
+  invalidateDocuments();
+  const request = docsRequest;
+  docsController = new AbortController();
   const search = docsSearch.value.trim();
   const status = docsStatusFilter.value;
-  const params = new URLSearchParams({ limit: '100' });
+  const limit = Number(docsPageSize.value);
+  const params = new URLSearchParams({ limit: String(limit), offset: String(docsOffset) });
   if (search) params.append('search', search);
   if (status) params.append('status', status);
+  if (docsCollectionFilter.value) params.append('collectionId', docsCollectionFilter.value);
 
   try {
-    const res = await fetch(`/api/documents?${params.toString()}`);
+    const res = await fetch(`/api/documents?${params.toString()}`, { signal: docsController.signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
+    if (request !== docsRequest) return;
     const docs = data.documents || [];
+    const total = Number(data.total) || 0;
+    // A deletion can remove the final row on the current page.
+    if (docsOffset > 0 && docsOffset >= total) {
+      docsOffset = Math.max(0, Math.floor((total - 1) / limit) * limit);
+      return loadDocuments();
+    }
+    docsPrev.disabled = docsOffset === 0;
+    docsNext.disabled = docsOffset + limit >= total;
+    docsPageInfo.textContent = total
+      ? `${docsOffset + 1}–${docsOffset + docs.length} of ${total.toLocaleString()} documents · Page ${Math.floor(docsOffset / limit) + 1} of ${Math.ceil(total / limit).toLocaleString()}`
+      : '0 documents';
 
     if (!docs.length) {
       docsTbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No documents found.</td></tr>';
@@ -259,7 +311,11 @@ async function loadDocuments() {
       `;
     }).join('');
   } catch (err) {
-    docsTbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">Failed to load documents: ${err.message}</td></tr>`;
+    if (request !== docsRequest || err.name === 'AbortError') return;
+    docsPageInfo.textContent = 'Could not load documents. Use Refresh to retry.';
+    docsTbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">Failed to load documents: ${escapeHtml(err.message)}</td></tr>`;
+  } finally {
+    if (request === docsRequest) docsTbody.setAttribute('aria-busy', 'false');
   }
 }
 
@@ -426,6 +482,13 @@ async function updateCollectionSelects() {
     const list = await res.json();
     const optionsHtml = list.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
 
+    const selectedDocsCollection = docsCollectionFilter.value;
+    docsCollectionFilter.innerHTML = `<option value="">All Collections</option>${optionsHtml}`;
+    docsCollectionFilter.value = selectedDocsCollection;
+    if (!docsCollectionFilter.value && selectedDocsCollection) {
+      docsOffset = 0;
+      loadDocuments();
+    }
     queryCollection.innerHTML = `<option value="">All Collections</option>${optionsHtml}`;
     ingestCollection.innerHTML = `<option value="">(Auto-assign based on AI classification)</option>${optionsHtml}`;
   } catch {}
@@ -434,6 +497,19 @@ async function updateCollectionSelects() {
 // ----------------------------------------------------
 // Health & Stats Tab
 // ----------------------------------------------------
+function qdrantBadgeClass(status) {
+  switch (String(status).toLowerCase()) {
+    case 'ok':
+    case 'green':
+      return 'ready';
+    case 'yellow':
+    case 'grey':
+      return 'processing';
+    default:
+      return 'failed';
+  }
+}
+
 async function loadHealth() {
   const compContainer = document.getElementById('health-components');
   const errContainer = document.getElementById('recent-errors-container');
@@ -448,7 +524,7 @@ async function loadHealth() {
         <p>Base URL: ${health.components.ollama.baseUrl}</p>
       </div>
       <div class="health-card">
-        <h4>Qdrant <span class="badge badge-${health.components.qdrant.status === 'OK' ? 'ready' : 'failed'}">${health.components.qdrant.status}</span></h4>
+        <h4>Qdrant <span class="badge badge-${qdrantBadgeClass(health.components.qdrant.status)}">${health.components.qdrant.status}</span></h4>
         <p>Vectors: ${health.components.qdrant.vectorsCount ?? 0} | Points: ${health.components.qdrant.pointsCount ?? 0}</p>
       </div>
       <div class="health-card">

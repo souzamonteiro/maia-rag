@@ -180,3 +180,15 @@ RAG service. See [docs/REMOTE-ACCESS.md](docs/REMOTE-ACCESS.md) for rendering,
 certificate bootstrap, user management and verification. All authenticated
 curators have full administrative access. No application authentication is
 enabled automatically by installing Maia RAG.
+
+The Documents tab lists 25 or 50 records per page, with server-side search,
+status and collection filters. Filter changes return to the first page; refresh,
+delete and reprocess preserve the current page when possible. Pagination uses
+the existing limit/offset API; cursor pagination and indexed full-text search
+remain future work for very large catalogs.
+
+Generated answers in the Query tab render sanitized Markdown with headings,
+lists, tables, links and syntax-highlighted code. Marked, DOMPurify and
+highlight.js are served locally; no CDN is required. Source excerpts remain
+plain text. Updating this feature requires installing the updated package
+lockfile dependencies and restarting the API to expose the vendor routes.
